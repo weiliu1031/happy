@@ -35,6 +35,17 @@ Step 1: Download App
 Step 2: Install CLI on your computer
 </h3>
 
+For the Codex local/remote fork:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/weiliu1031/happy/main/scripts/install-happy-codex.sh | bash
+```
+
+This installs from `weiliu1031/happy` and links the local `happy` CLI globally.
+Run the same command again to update.
+
+For the published upstream package:
+
 ```bash
 npm install -g happy
 ```
@@ -51,6 +62,9 @@ happy claude
 # or
 happy codex
 ```
+
+See [Happy Codex Fork Installation](docs/codex-install.md) for update,
+custom install directory, and uninstall instructions.
 
 ## How does it work?
 
