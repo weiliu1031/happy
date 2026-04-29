@@ -6,6 +6,22 @@ import {
 } from '../utils/sessionProtocolMapper';
 
 describe('mapCodexMcpMessageToSessionEnvelopes', () => {
+    it('maps local Codex TUI user messages into user text envelopes', () => {
+        const mapped = mapCodexMcpMessageToSessionEnvelopes({
+            type: 'user_message',
+            message: 'hello from terminal',
+        }, { currentTurnId: null });
+
+        expect(mapped.envelopes).toHaveLength(1);
+        expect(mapped.envelopes[0]).toEqual(expect.objectContaining({
+            role: 'user',
+            ev: {
+                t: 'text',
+                text: 'hello from terminal',
+            },
+        }));
+    });
+
     it('starts and ends turns for task lifecycle events', () => {
         const started = mapCodexMcpMessageToSessionEnvelopes({ type: 'task_started' }, { currentTurnId: null });
 

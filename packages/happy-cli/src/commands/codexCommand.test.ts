@@ -57,6 +57,8 @@ describe('handleCodexCommand', () => {
       startedBy: 'terminal',
       noSandbox: false,
       resumeThreadId: undefined,
+      startingMode: undefined,
+      codexArgs: [],
     })
     expect(
       mocks.mockEnsureDaemonRunning.mock.invocationCallOrder[0],
@@ -80,6 +82,52 @@ describe('handleCodexCommand', () => {
       startedBy: 'daemon',
       noSandbox: true,
       resumeThreadId: 'thread-123',
+      startingMode: undefined,
+      codexArgs: [],
+    })
+  })
+
+  it('passes the requested starting mode through to runCodex', async () => {
+    mocks.mockExtractNoSandboxFlag.mockReturnValue({
+      noSandbox: false,
+      args: ['--happy-starting-mode', 'remote', '--started-by', 'daemon'],
+    })
+    mocks.mockExtractCodexResumeFlag.mockReturnValue({
+      resumeThreadId: null,
+      args: ['--happy-starting-mode', 'remote', '--started-by', 'daemon'],
+    })
+
+    await handleCodexCommand(['--happy-starting-mode', 'remote', '--started-by', 'daemon'])
+
+    expect(mocks.mockRunCodex).toHaveBeenCalledWith({
+      credentials: { token: 'token' },
+      startedBy: 'daemon',
+      noSandbox: false,
+      resumeThreadId: undefined,
+      startingMode: 'remote',
+      codexArgs: [],
+    })
+  })
+
+  it('passes non-Happy Codex args through to runCodex', async () => {
+    mocks.mockExtractNoSandboxFlag.mockReturnValue({
+      noSandbox: false,
+      args: ['--model', 'gpt-5.5', '--happy-starting-mode', 'local', '--started-by', 'terminal'],
+    })
+    mocks.mockExtractCodexResumeFlag.mockReturnValue({
+      resumeThreadId: null,
+      args: ['--model', 'gpt-5.5', '--happy-starting-mode', 'local', '--started-by', 'terminal'],
+    })
+
+    await handleCodexCommand(['--model', 'gpt-5.5', '--happy-starting-mode', 'local', '--started-by', 'terminal'])
+
+    expect(mocks.mockRunCodex).toHaveBeenCalledWith({
+      credentials: { token: 'token' },
+      startedBy: 'terminal',
+      noSandbox: false,
+      resumeThreadId: undefined,
+      startingMode: 'local',
+      codexArgs: ['--model', 'gpt-5.5'],
     })
   })
 })

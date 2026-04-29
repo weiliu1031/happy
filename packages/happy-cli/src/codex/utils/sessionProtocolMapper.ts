@@ -235,6 +235,28 @@ export function mapCodexMcpMessageToSessionEnvelopes(message: Record<string, unk
         };
     }
 
+    if (type === 'user_message') {
+        if (typeof message.message !== 'string') {
+            return {
+                currentTurnId: state.currentTurnId,
+                startedSubagents,
+                activeSubagents,
+                providerSubagentToSessionSubagent,
+                envelopes: [],
+            };
+        }
+
+        return {
+            currentTurnId: state.currentTurnId,
+            startedSubagents,
+            activeSubagents,
+            providerSubagentToSessionSubagent,
+            envelopes: [
+                createEnvelope('user', { t: 'text', text: message.message }),
+            ],
+        };
+    }
+
     const subagent = resolveSessionSubagent(message, providerSubagentToSessionSubagent);
     const opts = buildEnvelopeOptions(state.currentTurnId, subagent);
 
