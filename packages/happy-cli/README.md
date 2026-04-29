@@ -6,6 +6,18 @@ Free. Open source. Code anywhere.
 
 ## Installation
 
+### Codex local/remote fork
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/weiliu1031/happy/main/scripts/install-happy-codex.sh | bash
+```
+
+The installer clones or updates `weiliu1031/happy`, installs dependencies,
+builds the CLI, links `happy` globally, restarts the daemon, and verifies the
+installation. Re-run the same command to update.
+
+### Published package
+
 ```bash
 npm install -g happy
 ```
@@ -115,6 +127,15 @@ git clone https://github.com/slopus/happy
 cd happy-cli
 yarn install
 yarn workspace happy cli --help
+```
+
+For this fork, use the one-command installer above or the manual workspace flow:
+
+```bash
+git clone https://github.com/weiliu1031/happy
+cd happy
+pnpm install
+pnpm --filter happy run cli:install
 ```
 
 ## Requirements
