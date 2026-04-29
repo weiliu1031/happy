@@ -474,6 +474,7 @@ export async function runCodex(opts: {
             sessionLogCursor,
             initialThreadId: resumeThreadId ?? null,
             codexArgs: opts.codexArgs,
+            skipExistingEvents: resumeThreadId !== undefined && resumeThreadId !== null,
         });
 
         if (localResult.type === 'exit') {
