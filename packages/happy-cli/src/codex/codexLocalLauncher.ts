@@ -47,6 +47,7 @@ export async function codexLocalLauncher(opts: {
     codexArgs?: string[];
     codexHome?: string;
     scanIntervalMs?: number;
+    skipExistingEvents?: boolean;
 }): Promise<CodexLocalLauncherResult> {
     let switchRequested = false;
     let currentSession: CodexSessionInfo | null = opts.sessionLogCursor?.currentSession ?? null;
@@ -61,7 +62,7 @@ export async function codexLocalLauncher(opts: {
 
     const abortController = new AbortController();
 
-    const syncFromCodexLog = async () => {
+    const syncFromCodexLog = async (emitEvents = true) => {
         const latest = await findLatestCodexSession({
             codexHome: opts.codexHome,
             cwd: opts.path,
@@ -89,6 +90,10 @@ export async function codexLocalLauncher(opts: {
         if (opts.sessionLogCursor) {
             opts.sessionLogCursor.currentSession = currentSession;
             opts.sessionLogCursor.lineOffset = lineOffset;
+        }
+
+        if (!emitEvents) {
+            return;
         }
 
         for (const event of read.events) {
@@ -143,7 +148,7 @@ export async function codexLocalLauncher(opts: {
     }, opts.scanIntervalMs ?? 1000);
 
     try {
-        await syncFromCodexLog();
+        await syncFromCodexLog(!opts.skipExistingEvents);
         await codexLocal({
             path: opts.path,
             abort: abortController.signal,

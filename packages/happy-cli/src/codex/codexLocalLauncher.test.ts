@@ -248,4 +248,38 @@ describe('codexLocalLauncher', () => {
         expect(mocks.readCodexSessionEvents).toHaveBeenNthCalledWith(3, '/tmp/rollout.jsonl', 9);
         expect(cursor.lineOffset).toBe(11);
     });
+
+    it('does not replay remote events when entering local mode for an existing thread', async () => {
+        mocks.codexLocal.mockResolvedValue(undefined);
+        mocks.readCodexSessionEvents
+            .mockResolvedValueOnce({
+                events: [{ type: 'agent_message', message: 'remote hello already sent' }],
+                nextLineOffset: 5,
+            })
+            .mockResolvedValueOnce({
+                events: [{ type: 'agent_message', message: 'local hello' }],
+                nextLineOffset: 6,
+            });
+
+        const session = {
+            updateMetadata: vi.fn(),
+            sendSessionProtocolMessage: vi.fn(),
+        };
+
+        await codexLocalLauncher({
+            path: '/work/project',
+            session,
+            queue: new MessageQueue2<CodexEnhancedMode>((mode) => mode.permissionMode),
+            initialThreadId: 'thread-1',
+            skipExistingEvents: true,
+            scanIntervalMs: 10,
+        });
+
+        expect(mocks.readCodexSessionEvents).toHaveBeenNthCalledWith(1, '/tmp/rollout.jsonl', 0);
+        expect(mocks.readCodexSessionEvents).toHaveBeenNthCalledWith(2, '/tmp/rollout.jsonl', 5);
+        expect(session.sendSessionProtocolMessage).toHaveBeenCalledTimes(1);
+        expect(session.sendSessionProtocolMessage).toHaveBeenCalledWith(
+            expect.objectContaining({ role: 'agent', ev: expect.objectContaining({ t: 'text', text: 'local hello' }) }),
+        );
+    });
 });
