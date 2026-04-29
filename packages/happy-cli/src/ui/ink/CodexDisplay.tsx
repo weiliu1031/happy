@@ -6,12 +6,13 @@ interface CodexDisplayProps {
     messageBuffer: MessageBuffer
     logPath?: string
     onExit?: () => void
+    onSwitchToLocal?: () => void
 }
 
-export const CodexDisplay: React.FC<CodexDisplayProps> = ({ messageBuffer, logPath, onExit }) => {
+export const CodexDisplay: React.FC<CodexDisplayProps> = ({ messageBuffer, logPath, onExit, onSwitchToLocal }) => {
     const [messages, setMessages] = useState<BufferedMessage[]>([])
-    const [confirmationMode, setConfirmationMode] = useState<boolean>(false)
-    const [actionInProgress, setActionInProgress] = useState<boolean>(false)
+    const [confirmationMode, setConfirmationMode] = useState<'exit' | 'switch' | null>(null)
+    const [actionInProgress, setActionInProgress] = useState<'exiting' | 'switching' | null>(null)
     const confirmationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const { stdout } = useStdout()
     const terminalWidth = stdout.columns || 80
@@ -33,15 +34,15 @@ export const CodexDisplay: React.FC<CodexDisplayProps> = ({ messageBuffer, logPa
     }, [messageBuffer])
 
     const resetConfirmation = useCallback(() => {
-        setConfirmationMode(false)
+        setConfirmationMode(null)
         if (confirmationTimeoutRef.current) {
             clearTimeout(confirmationTimeoutRef.current)
             confirmationTimeoutRef.current = null
         }
     }, [])
 
-    const setConfirmationWithTimeout = useCallback(() => {
-        setConfirmationMode(true)
+    const setConfirmationWithTimeout = useCallback((mode: 'exit' | 'switch') => {
+        setConfirmationMode(mode)
         if (confirmationTimeoutRef.current) {
             clearTimeout(confirmationTimeoutRef.current)
         }
@@ -56,17 +57,25 @@ export const CodexDisplay: React.FC<CodexDisplayProps> = ({ messageBuffer, logPa
         
         // Handle Ctrl-C - exits the agent directly instead of switching modes
         if (key.ctrl && input === 'c') {
-            if (confirmationMode) {
+            if (confirmationMode === 'exit') {
                 // Second Ctrl-C, exit
                 resetConfirmation()
-                setActionInProgress(true)
+                setActionInProgress('exiting')
                 // Small delay to show the status message
                 await new Promise(resolve => setTimeout(resolve, 100))
                 onExit?.()
             } else {
                 // First Ctrl-C, show confirmation
-                setConfirmationWithTimeout()
+                setConfirmationWithTimeout('exit')
             }
+            return
+        }
+
+        if (input.includes(' ') && onSwitchToLocal) {
+            resetConfirmation()
+            setActionInProgress('switching')
+            await new Promise(resolve => setTimeout(resolve, 100))
+            onSwitchToLocal()
             return
         }
 
@@ -74,7 +83,7 @@ export const CodexDisplay: React.FC<CodexDisplayProps> = ({ messageBuffer, logPa
         if (confirmationMode) {
             resetConfirmation()
         }
-    }, [confirmationMode, actionInProgress, onExit, setConfirmationWithTimeout, resetConfirmation]))
+    }, [confirmationMode, actionInProgress, onExit, onSwitchToLocal, setConfirmationWithTimeout, resetConfirmation]))
 
     const getMessageColor = (type: BufferedMessage['type']): string => {
         switch (type) {
@@ -140,7 +149,8 @@ export const CodexDisplay: React.FC<CodexDisplayProps> = ({ messageBuffer, logPa
                 borderStyle="round"
                 borderColor={
                     actionInProgress ? "gray" :
-                    confirmationMode ? "red" : 
+                    confirmationMode === 'exit' ? "red" :
+                    confirmationMode === 'switch' ? "yellow" :
                     "green"
                 }
                 paddingX={2}
@@ -149,18 +159,24 @@ export const CodexDisplay: React.FC<CodexDisplayProps> = ({ messageBuffer, logPa
                 flexDirection="column"
             >
                 <Box flexDirection="column" alignItems="center">
-                    {actionInProgress ? (
+                    {actionInProgress === 'exiting' ? (
                         <Text color="gray" bold>
                             Exiting agent...
                         </Text>
-                    ) : confirmationMode ? (
+                    ) : actionInProgress === 'switching' ? (
+                        <Text color="gray" bold>
+                            Switching to local mode...
+                        </Text>
+                    ) : confirmationMode === 'exit' ? (
                         <Text color="red" bold>
                             ⚠️  Press Ctrl-C again to exit the agent
                         </Text>
                     ) : (
                         <>
                             <Text color="green" bold>
-                                🤖 Codex Agent Running • Ctrl-C to exit
+                                {onSwitchToLocal
+                                    ? '🤖 Codex Remote Running • Space to local • Ctrl-C to exit'
+                                    : '🤖 Codex Agent Running • Ctrl-C to exit'}
                             </Text>
                         </>
                     )}
